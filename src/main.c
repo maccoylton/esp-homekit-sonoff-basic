@@ -43,9 +43,9 @@
 
 #include "ota-api.h"
 homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
-homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "Sonoff");
+homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "iTEAD");
 homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
-homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Basic");
+homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Sonoff-Basic");
 homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
 
 // The GPIO pin that is connected to the relay on the Sonoff Basic.
@@ -77,7 +77,7 @@ void reset_configuration_task() {
     
     printf("Resetting Wifi Config\n");
     
-    wifi_config_reset();
+//    wifi_config_reset();
     
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     
@@ -123,7 +123,7 @@ void button_callback(uint8_t gpio, button_event_t event) {
             homekit_characteristic_notify(&switch_on, switch_on.value);
             break;
         case button_event_long_press:
-//            reset_configuration();
+            reset_configuration();
             break;
         default:
             printf("Unknown button event: %d\n", event);
@@ -153,12 +153,12 @@ void switch_identify(homekit_value_t _value) {
     xTaskCreate(switch_identify_task, "Switch identify", 128, NULL, 2, NULL);
 }
 
-homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "Sonoff Switch");
+homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "Sonoff-Basic-Switch");
 
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_switch, .services=(homekit_service_t*[]){
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff"),
+            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff-Basic"),
             &manufacturer,
             &serial,
             &model,
@@ -167,7 +167,7 @@ homekit_accessory_t *accessories[] = {
             NULL
         }),
         HOMEKIT_SERVICE(SWITCH, .primary=true, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff Switch"),
+            HOMEKIT_CHARACTERISTIC(NAME, "Switch"),
             &switch_on,
             &ota_trigger,
             NULL
@@ -182,17 +182,25 @@ homekit_server_config_t config = {
     .password = "111-11-111"
 };
 
-void on_wifi_ready() {
-    homekit_server_init(&config);
+void create_accessory_name() {
+    uint8_t macaddr[6];
+    sdk_wifi_get_macaddr(STATION_IF, macaddr);
+    
+    char *name_value = malloc(14);
+    snprintf(name_value, 14, "Sonoff-Basic-%02X%02X%02X", macaddr[3], macaddr[4], macaddr[5]);
+    
+    name.value = HOMEKIT_STRING(name_value);
+    serial.value = name.value;
 }
 
-
 void user_init(void) {
-    uart_set_baud(0, 115200);
+   uart_set_baud(0, 115200);
    
-    gpio_init();
+   gpio_init();
 
-    if (button_create(button_gpio, 0, 4000, button_callback)) {
+   create_accessory_name(); 
+
+   if (button_create(button_gpio, 0, 4000, button_callback)) {
         printf("Failed to initialize button\n");
     }
 
