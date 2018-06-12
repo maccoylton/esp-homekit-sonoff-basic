@@ -120,6 +120,7 @@ void button_callback(uint8_t gpio, button_event_t event) {
             printf("Toggling relay\n");
             switch_on.value.bool_value = !switch_on.value.bool_value;
             relay_write(switch_on.value.bool_value);
+            led_write(switch_on.value.bool_value);
             homekit_characteristic_notify(&switch_on, switch_on.value);
             break;
         case button_event_long_press:
@@ -158,7 +159,7 @@ homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "Sonoff-Basic-Swit
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_switch, .services=(homekit_service_t*[]){
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff-Basic"),
+            &name,
             &manufacturer,
             &serial,
             &model,
