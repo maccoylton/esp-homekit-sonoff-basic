@@ -21,6 +21,12 @@
  *
  */
 
+#define DEVICE_MANUFACTURER "itead"
+#define DEVICE_NAME "Sonoff"
+#define DEVICE_MODEL "Basic"
+#define DEVICE_SERIAL "12345678"
+#define FW_VERSION "1.0"
+
 #include <stdio.h>
 #include <espressif/esp_wifi.h>
 #include <espressif/esp_sta.h>
@@ -43,10 +49,12 @@
 
 #include "ota-api.h"
 homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
-homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "iTEAD");
-homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
-homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Sonoff-Basic");
-homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
+homekit_characteristic_t name         = HOMEKIT_CHARACTERISTIC_(NAME, DEVICE_NAME);
+homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  DEVICE_MANUFACTURER);
+homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, DEVICE_SERIAL);
+homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         DEVICE_MODEL);
+homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  FW_VERSION);
+
 
 // The GPIO pin that is connected to the relay on the Sonoff Basic.
 const int relay_gpio = 12;
@@ -112,6 +120,7 @@ void gpio_init() {
 
 void switch_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
     relay_write(switch_on.value.bool_value);
+    led_write(switch_on.value.bool_value);
 }
 
 void button_callback(uint8_t gpio, button_event_t event) {
@@ -154,7 +163,6 @@ void switch_identify(homekit_value_t _value) {
     xTaskCreate(switch_identify_task, "Switch identify", 128, NULL, 2, NULL);
 }
 
-homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "Sonoff-Basic-Switch");
 
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_switch, .services=(homekit_service_t*[]){
@@ -184,12 +192,28 @@ homekit_server_config_t config = {
 };
 
 void create_accessory_name() {
-    uint8_t macaddr[6];
-    sdk_wifi_get_macaddr(STATION_IF, macaddr);
+
+    int serialLength = snprintf(NULL, 0, "%d", sdk_system_get_chip_id());
+
+    char *serialNumberValue = malloc(serialLength + 1);
+
+    snprintf(serialNumberValue, serialLength + 1, "%d", sdk_system_get_chip_id());
     
-    char *name_value = malloc(14);
-    snprintf(name_value, 14, "Sonoff-Basic-%02X%02X%02X", macaddr[3], macaddr[4], macaddr[5]);
-    
+    int name_len = snprintf(NULL, 0, "%s-%s-%s",
+				DEVICE_NAME,
+				DEVICE_MODEL,
+				serialNumberValue);
+
+    if (name_len > 63) {
+        name_len = 63;
+    }
+
+    char *name_value = malloc(name_len + 1);
+
+    snprintf(name_value, name_len + 1, "%s-%s-%s",
+		 DEVICE_NAME, DEVICE_MODEL, serialNumberValue);
+
+   
     name.value = HOMEKIT_STRING(name_value);
     serial.value = name.value;
 }
