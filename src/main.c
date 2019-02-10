@@ -40,14 +40,15 @@
 #include <homekit/characteristics.h>
 //#include <wifi_config.h>
 
-#include "button.h"
+#include <button.h>
+#include <led_codes.h>
 
 // add this section to make your device OTA capable
 // create the extra characteristic &ota_trigger, at the end of the primary service (before the NULL)
 // it can be used in Eve, which will show it, where Home does not
 // and apply the four other parameters in the accessories_information section
 
-#include "ota-api.h"
+#include <ota-api.h>
 homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
 homekit_characteristic_t name         = HOMEKIT_CHARACTERISTIC_(NAME, DEVICE_NAME);
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  DEVICE_MANUFACTURER);
@@ -59,7 +60,7 @@ homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISIO
 // The GPIO pin that is connected to the relay on the Sonoff Basic.
 const int relay_gpio = 12;
 // The GPIO pin that is connected to the LED on the Sonoff Basic.
-const int led_gpio = 13;
+const int LED_GPIO = 13;
 // The GPIO pin that is oconnected to the button on the Sonoff Basic.
 const int button_gpio = 0;
 
@@ -71,18 +72,12 @@ void relay_write(bool on) {
 }
 
 void led_write(bool on) {
-    gpio_write(led_gpio, on ? 0 : 1);
+    gpio_write(LED_GPIO, on ? 0 : 1);
 }
 
 void reset_configuration_task() {
     //Flash the LED first before we start the reset
-    for (int i=0; i<3; i++) {
-        led_write(true);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        led_write(false);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-    
+    led_code (LED_GPIO, WIFI_CONFIG_RESET);    
     printf("Resetting Wifi Config\n");
     
 //    wifi_config_reset();
@@ -112,7 +107,7 @@ homekit_characteristic_t switch_on = HOMEKIT_CHARACTERISTIC_(
 );
 
 void gpio_init() {
-    gpio_enable(led_gpio, GPIO_OUTPUT);
+    gpio_enable(LED_GPIO, GPIO_OUTPUT);
     led_write(false);
     gpio_enable(relay_gpio, GPIO_OUTPUT);
     relay_write(switch_on.value.bool_value);
@@ -142,19 +137,8 @@ void button_callback(uint8_t gpio, button_event_t event) {
 
 void switch_identify_task(void *_args) {
     // We identify the Sonoff by Flashing it's LED.
-    for (int i=0; i<3; i++) {
-        for (int j=0; j<2; j++) {
-            led_write(true);
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            led_write(false);
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-        }
-
-        vTaskDelay(250 / portTICK_PERIOD_MS);
-    }
-
-    led_write(false);
-
+    led_code( LED_GPIO, IDENTIFY_ACCESSORY);
+    led_write(switch_on.value.bool_value);
     vTaskDelete(NULL);
 }
 
