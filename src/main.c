@@ -138,6 +138,8 @@ void gpio_init() {
 void switch_on_callback(homekit_characteristic_t *_ch, homekit_value_t on, void *context) {
     relay_write(switch_on.value.bool_value, RELAY_GPIO);
     led_write(switch_on.value.bool_value, LED_GPIO);
+    sdk_os_timer_arm (&save_timer, SAVE_DELAY, 0 );
+
 }
 
 homekit_accessory_t *accessories[] = {
@@ -157,6 +159,7 @@ homekit_accessory_t *accessories[] = {
             &ota_trigger,
             &wifi_reset,
             &task_stats,
+            &wifi_check_interval,
             NULL
         }),
         NULL
@@ -172,6 +175,20 @@ homekit_server_config_t config = {
 };
 
 
+void recover_from_reset (int reason){
+    /* called if we restarted abnormally */
+    printf ("%s: reason %d\n", __func__, reason);
+    load_characteristic_from_flash(&switch_on);
+    relay_write(switch_on.value.bool_value, RELAY_GPIO);
+}
+
+void save_characteristics ( ){
+    
+    printf ("%s:\n", __func__);
+    save_characteristic_to_flash(&switch_on, switch_on.value);
+    save_characteristic_to_flash(&wifi_check_interval, wifi_check_interval.value);
+}
+
 
 void accessory_init_not_paired (void) {
     /* initalise anything you don't want started until wifi and homekit imitialisation is confirmed, but not paired */
@@ -180,7 +197,7 @@ void accessory_init_not_paired (void) {
 
 void accessory_init (void ){
     /* initalise anything you don't want started until wifi and pairing is confirmed */
-    
+    homekit_characteristic_notify(&switch_on, switch_on.value);
 }
 
 void user_init(void) {
