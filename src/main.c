@@ -60,6 +60,8 @@ homekit_characteristic_t wifi_check_interval   = HOMEKIT_CHARACTERISTIC_(CUSTOM_
 /* checks the wifi is connected and flashes status led to indicated connected */
 homekit_characteristic_t task_stats   = HOMEKIT_CHARACTERISTIC_(CUSTOM_TASK_STATS, false , .setter=task_stats_set);
 homekit_characteristic_t wifi_reset   = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .setter=wifi_reset_set);
+homekit_characteristic_t ota_beta     = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_BETA, false, .setter=ota_beta_set);
+homekit_characteristic_t lcm_beta    = HOMEKIT_CHARACTERISTIC_(CUSTOM_LCM_BETA, false, .setter=lcm_beta_set);
 
 homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
 homekit_characteristic_t name         = HOMEKIT_CHARACTERISTIC_(NAME, DEVICE_NAME);
@@ -97,6 +99,7 @@ void button_single_press_callback(uint8_t gpio, void* args, uint8_t param) {
     switch_on.value.bool_value = !switch_on.value.bool_value;
     relay_write(switch_on.value.bool_value, RELAY_GPIO);
     homekit_characteristic_notify(&switch_on, switch_on.value);
+    sdk_os_timer_arm (&save_timer, SAVE_DELAY, 0 );
 }
 
 
@@ -160,6 +163,8 @@ homekit_accessory_t *accessories[] = {
             &switch_on,
             &ota_trigger,
             &wifi_reset,
+            &ota_beta,
+            &lcm_beta,
             &task_stats,
             &wifi_check_interval,
             NULL
@@ -199,7 +204,10 @@ void accessory_init_not_paired (void) {
 
 void accessory_init (void ){
     /* initalise anything you don't want started until wifi and pairing is confirmed */
+    load_characteristic_from_flash(&switch_on);
+    load_characteristic_from_flash(&wifi_check_interval);
     homekit_characteristic_notify(&switch_on, switch_on.value);
+    homekit_characteristic_notify(&wifi_check_interval, wifi_check_interval.value);
 }
 
 void user_init(void) {
