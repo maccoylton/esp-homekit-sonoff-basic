@@ -60,6 +60,8 @@ homekit_characteristic_t wifi_check_interval   = HOMEKIT_CHARACTERISTIC_(CUSTOM_
 /* checks the wifi is connected and flashes status led to indicated connected */
 homekit_characteristic_t task_stats   = HOMEKIT_CHARACTERISTIC_(CUSTOM_TASK_STATS, false , .setter=task_stats_set);
 homekit_characteristic_t wifi_reset   = HOMEKIT_CHARACTERISTIC_(CUSTOM_WIFI_RESET, false, .setter=wifi_reset_set);
+homekit_characteristic_t ota_beta     = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_BETA, false, .setter=ota_beta_set);
+homekit_characteristic_t lcm_beta    = HOMEKIT_CHARACTERISTIC_(CUSTOM_LCM_BETA, false, .setter=lcm_beta_set);
 
 homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
 homekit_characteristic_t name         = HOMEKIT_CHARACTERISTIC_(NAME, DEVICE_NAME);
@@ -77,7 +79,7 @@ const int LED_GPIO = 13;
 // The GPIO pin that is oconnected to the button on the Sonoff Basic.
 const int BUTTON_GPIO = 0;
 
-int led_off_value=0; /* global varibale to support LEDs set to 0 where the LED is connected to GND, 1 where +3.3v */
+int led_off_value=1; /* global varibale to support LEDs set to 0 where the LED is connected to GND, 1 where +3.3v */
 
 const int status_led_gpio = 13; /*set the gloabl variable for the led to be used for showing status */
 
@@ -120,7 +122,7 @@ void button_very_long_press_callback(uint8_t gpio, void* args, uint8_t param) {
 void gpio_init() {
 
     gpio_enable(LED_GPIO, GPIO_OUTPUT);
-    led_write(false, LED_GPIO);
+    led_write(led_off_value, LED_GPIO);
 
     gpio_enable(RELAY_GPIO, GPIO_OUTPUT);
     relay_write(switch_on.value.bool_value, RELAY_GPIO);
@@ -162,6 +164,8 @@ homekit_accessory_t *accessories[] = {
             &wifi_reset,
             &task_stats,
             &wifi_check_interval,
+            &ota_beta,
+            &lcm_beta,
             NULL
         }),
         NULL
@@ -199,7 +203,6 @@ void accessory_init_not_paired (void) {
 
 void accessory_init (void ){
     /* initalise anything you don't want started until wifi and pairing is confirmed */
-    homekit_characteristic_notify(&switch_on, switch_on.value);
 }
 
 void user_init(void) {
