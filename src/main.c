@@ -99,6 +99,7 @@ void button_single_press_callback(uint8_t gpio, void* args, uint8_t param) {
     switch_on.value.bool_value = !switch_on.value.bool_value;
     relay_write(switch_on.value.bool_value, RELAY_GPIO);
     homekit_characteristic_notify(&switch_on, switch_on.value);
+    sdk_os_timer_arm (&save_timer, SAVE_DELAY, 0 );
 }
 
 
@@ -162,6 +163,8 @@ homekit_accessory_t *accessories[] = {
             &switch_on,
             &ota_trigger,
             &wifi_reset,
+            &ota_beta,
+            &lcm_beta,
             &task_stats,
             &wifi_check_interval,
             &ota_beta,
@@ -203,6 +206,10 @@ void accessory_init_not_paired (void) {
 
 void accessory_init (void ){
     /* initalise anything you don't want started until wifi and pairing is confirmed */
+    load_characteristic_from_flash(&switch_on);
+    load_characteristic_from_flash(&wifi_check_interval);
+    homekit_characteristic_notify(&switch_on, switch_on.value);
+    homekit_characteristic_notify(&wifi_check_interval, wifi_check_interval.value);
 }
 
 void user_init(void) {
