@@ -167,8 +167,6 @@ homekit_accessory_t *accessories[] = {
             &lcm_beta,
             &task_stats,
             &wifi_check_interval,
-            &ota_beta,
-            &lcm_beta,
             NULL
         }),
         NULL
@@ -210,6 +208,8 @@ void accessory_init (void ){
     load_characteristic_from_flash(&wifi_check_interval);
     homekit_characteristic_notify(&switch_on, switch_on.value);
     homekit_characteristic_notify(&wifi_check_interval, wifi_check_interval.value);
+    
+    
 }
 
 void user_init(void) {
